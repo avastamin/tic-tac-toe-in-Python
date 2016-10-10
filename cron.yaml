@@ -1,0 +1,9 @@
+cron:
+- description: Send a Game Cancel reminder email to users of that game
+  url: /crons/send_cancel_reminder
+  schedule: every 24 hours
+
+- description: Send a reminder email to all users
+  url: /crons/send_reminder
+  schedule: every 12 hours
+
