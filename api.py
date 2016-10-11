@@ -19,7 +19,8 @@ from models import (
     MakeMoveForm,
     ScoreForms,
     UserGameFroms,
-    UserRankingForms
+    UserRankingForms,
+    GameHistroy
 )
 from utils import get_by_urlsafe
 from utils import isBoardFull
@@ -140,6 +141,9 @@ class TicTacToeApi(remote.Service):
         if user.key != game.next_move:
             raise endpoints.BadRequestException('It\'s not your turn!')
 
+        if request.move > 8:
+            raise endpoints.BadRequestException('It\'s out or range. Your move should be in 0 to 8')
+
         if isSpaceFree(game.board, request.move):
             game.board[request.move] = letter
             #game.moves.insert(request.move, letter)
@@ -178,7 +182,7 @@ class TicTacToeApi(remote.Service):
         return UserGameFroms(games = [game.to_form('Active User Games') for game in games])
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
-                      response_message=StringMessage,
+                      response_message=GameHistroy,
                       path='game/{urlsafe_game_key}/history',
                       name='get_game_history',
                       http_method='GET')
@@ -187,7 +191,12 @@ class TicTacToeApi(remote.Service):
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if not game:
             raise endpoints.NotFoundException('Game not found')
-        return StringMessage(message=str(game.history),game_over= game.game_over,game_cancelled= game.game_cancelled, tie = game.tie, winner=game.winner.get().name)
+        if not game.winner:
+            winner = ''
+        else:
+            winner = game.winner.get().name
+        return GameHistroy(message=str(game.history),game_over= game.game_over,
+                           game_cancelled= game.game_cancelled, tie = game.tie, winner=winner)
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',
