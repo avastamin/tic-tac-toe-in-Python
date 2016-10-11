@@ -1,0 +1,18 @@
+Design Decisions
+- I added a field to store the board in Game. I had some trouble to use
+python list so I used PickleProperty because it allowed
+me to store a Python List in the datastore which seemed like the simplest way
+to record the state of the board.
+- I also added next_move, user_x, user_o, and winner (all KeyProperty) to the Game
+model to keep track of which User was either 'X' or 'O' and who's move it was.
+- I also board_size though it was not necessary but it will give flexibility to extend
+complexity by increasing this board size
+- I used a 'game_over' flag as well to mark completed games.
+-  Score model modified to record result of the game.
+It contains 4 fields (user_x, user_o, result and date). Result field can contains
+3 types result. I stored string instead of string make it more easy. these values can
+be: 'user_x', 'user_o' and 'tie'.
+
+- I game 2 points to winner and 2 points for tie and 0 points for lose
+- I used win_percentage and no_lose_percentage to calculate user rank
+- I decided to give players 2 points for win, 1 point for tie and 0 points for lose.

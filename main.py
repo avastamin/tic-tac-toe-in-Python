@@ -20,8 +20,8 @@ class SendReminderEmail(webapp2.RequestHandler):
         games = Game.query(Game.game_over == False)
         for game in games:
             if not game.game_cancelled:
-                user_one = User.query(User.key == game.user_one).get()
-                user_two = User.query(User.key == game.user_two).get()
+                user_one = User.query(User.key == game.user_o).get()
+                user_two = User.query(User.key == game.user_x).get()
                 subject = 'This is a reminder!'
                 body = 'Hello {}, finish the game'
                 # This will send test emails, the arguments to send_mail are:
@@ -39,8 +39,8 @@ class SendReminderEmailForIncompleteGame(webapp2.RequestHandler):
         games = Game.query(Game.game_cancelled == True)
 
         for game in games:
-            user_one = User.query(User.key == game.user_one).get()
-            user_two = User.query(User.key == game.user_two).get()
+            user_one = User.query(User.key == game.user_o).get()
+            user_two = User.query(User.key == game.user_x).get()
             subject = 'This is a reminder!'
             body = 'Hello {}, try out Guess A Number!'
             # This will send test emails, the arguments to send_mail are:

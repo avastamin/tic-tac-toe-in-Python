@@ -4,17 +4,23 @@ This can also contain game logic. For more complex games it would be wise to
 move game logic to another file. Ideally the API will be simple, concerned
 primarily with communication to/from the API's users."""
 
-
-import logging
 import endpoints
 from protorpc import remote, messages
+from google.appengine.ext import ndb
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
 import json
 
 from models import User, Game, Score
-from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, UserGameFroms, UserRankingForms
+from models import (
+    StringMessage,
+    NewGameForm,
+    GameForm,
+    MakeMoveForm,
+    ScoreForms,
+    UserGameFroms,
+    UserRankingForms
+)
 from utils import get_by_urlsafe
 from utils import isBoardFull
 from utils import isSpaceFree
@@ -59,24 +65,23 @@ class TicTacToeApi(remote.Service):
                       http_method='POST')
     def new_game(self, request):
         """Creates new game"""
-        user_one = User.query(User.name == request.user_one).get()
-        user_two = User.query(User.name == request.user_two).get()
-        moves = ['', '', '', '', '', '', '', '', '']
-        if not user_one:
+        user_x = User.get_user_by_name(request.user_x)
+        user_o = User.get_user_by_name(request.user_o)
+        if not (user_x and user_o):
+            wrong_user = user_x if not user_x else user_o
             raise endpoints.NotFoundException(
-                    'A User One with that name does not exist!')
-        elif not user_two:
-            raise endpoints.NotFoundException(
-                'A User Two with that name does not exist!')
+                'User %s does not exist!' % wrong_user.name)
+
+        board_size = 3
         try:
-            game = Game.new_game(moves, user_one.key,user_two.key,len(moves))
+            game = Game.new_game(user_x.key,user_o.key,board_size)
         except ValueError:
             raise endpoints.BadRequestException('Something wrong, please check new game form')
 
         # Use a task queue to update the average attempts remaining.
         # This operation is not needed to complete the creation of a new game
         # so it is performed out of sequence.
-        taskqueue.add(url='/tasks/cache_average_attempts')
+        #taskqueue.add(url='/tasks/cache_average_attempts')
         return game.to_form('Good luck playing Tic Tac Toe')
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
@@ -107,7 +112,7 @@ class TicTacToeApi(remote.Service):
                 return game.to_form('Game already over!')
             else:
                 game.game_cancel()
-                return game.to_form('Game Cancelled!')
+                return game.to_form('Game has been Cancelled!')
         else:
             raise endpoints.NotFoundException('Game not found!')
 
@@ -119,49 +124,70 @@ class TicTacToeApi(remote.Service):
     def make_move(self, request):
         """Makes a move. Returns a game state with message"""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
-        user = User.query(User.name == request.user).get()
+        #user = User.query(User.name == request.user).get()
+        user = User.get_user_by_name(request.user)
 
         if game.game_over:
             return game.to_form('Game already over!')
         elif game.game_cancelled:
             return game.to_form('This Game is cancelled')
 
-        if game.user_one == user.key:
-            le = 'O'
+        if game.user_o == user.key:
+            letter = 'O'
         else:
-            le = 'X'
-        game.attempts_remaining -= 1
+            letter = 'X'
 
-        if isSpaceFree(game.moves, request.move):
-            game.moves.insert(request.move, le)
+        if user.key != game.next_move:
+            raise endpoints.BadRequestException('It\'s not your turn!')
 
-            if isWinner(game.moves, le):
-                game.end_game(user.key, True)
+        if isSpaceFree(game.board, request.move):
+            game.board[request.move] = letter
+            #game.moves.insert(request.move, letter)
+            game.history.append((letter, request.move))
+            game.next_move = game.user_x if (game.user_o == user.key) else game.user_o
+
+            if isWinner(game.board, letter):
+                game.end_game(user.key)
                 return game.to_form('You won the Game')
             else:
-                if isBoardFull(game.moves):
-                    game.end_game(True)
+                if isBoardFull(game.board):
+                    game.end_game(False)
                     return game.to_form('Game Tie')
                 else:
                     game.put()
                     return game.to_form('You have taken good position, let wait for the oponent')
         else:
-            return game.to_form('This is not a Free space to move')
+            #return game.to_form('This is not a Free space to move')
+            raise endpoints.BadRequestException('This is not a Free space to move')
 
-    @endpoints.method(request_message=GET_USER_GAMES_REQUEST,
+    @endpoints.method(request_message=USER_REQUEST,
                   response_message=UserGameFroms,
-                  path='user/game/{urlsafe_user_key}',
+                  path='user/games',
                   name='get_user_games',
                   http_method='GET')
     def get_user_games(self, request):
-        """Return the current game state."""
-        user = get_by_urlsafe(request.urlsafe_user_key, User)
-        games = Game.query(Game.user_one == user.key or Game.user_two == user.key)
+        """Return all User's active games"""
+        user = User.get_user_by_name(request.user_name)
+        games = Game.query(ndb.OR(Game.user_x == user.key,
+                                  Game.user_o == user.key)). \
+            filter(Game.game_over == False)
 
-        if games:
-            return UserGameFroms(games = [game.to_form(' ') for game in games])
-        else:
-            raise endpoints.NotFoundException('User not found!')
+        if not user:
+            raise endpoints.BadRequestException('User not found!')
+
+        return UserGameFroms(games = [game.to_form('Single User Games') for game in games])
+
+    @endpoints.method(request_message=GET_GAME_REQUEST,
+                      response_message=StringMessage,
+                      path='game/{urlsafe_game_key}/history',
+                      name='get_game_history',
+                      http_method='GET')
+    def get_game_history(self, request):
+        """Return a Game's move history"""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if not game:
+            raise endpoints.NotFoundException('Game not found')
+        return StringMessage(message=str(game.history))
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',
@@ -178,22 +204,22 @@ class TicTacToeApi(remote.Service):
                       http_method='GET')
     def get_user_scores(self, request):
         """Returns all of an individual User's scores"""
-        user = User.query(User.name == request.user_name).get()
+        user = User.get_user_by_name(request.user_name)
         if not user:
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
-        scores = Score.query(Score.user == user.key)
+        scores = Score.query(ndb.OR(Score.user_x == user.key,
+                                    Score.user_o == user.key))
         return ScoreForms(items=[score.to_form() for score in scores])
 
-    @endpoints.method(request_message=USER_REQUEST,
-                      response_message=UserRankingForms,
+    @endpoints.method(response_message=UserRankingForms,
                       path='scores/users',
                       name='get_user_rankings',
                       http_method='GET')
 
     def get_user_rankings(self, request):
         """Return all users with Rankings"""
-        return UserRankingForms(users=[user.to_form() for user in User.query().order(-User.ranking)])
+        return UserRankingForms(users=[user.to_form() for user in User.query().order(-User.wins)])
 
     @endpoints.method(response_message=StringMessage,
                       path='games/average_attempts',

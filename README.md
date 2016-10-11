@@ -11,9 +11,14 @@ Tic Tac Toe Game (backend) using python and google appengine
  
  
 ##Game Description:
-Tic Tac Toe is two players game. There are 9 positions. Two user needed to start a game.
-Any One of them can start first. Game position with be stored into list variable moves = ['', '', '', '', '', '', '', '', '']
-for first player letter will be 'O' and second player 'X'
+Tic Tac Toe is two players game. There are 9 positions. Two user(player) needed to start a game.
+user_x will have 'X' letter and user_o 'O'. Game position with be stored into list variable board = ['', '', '', '', '', '', '', '', '']
+Board index start with 0 (0,1,2,3,4.....9)
+To choose your position you need to specify the index(position on the board). For example if you want ot take position at 2 and your letter 'O'
+then Board will looks like ['', '', 'O', '', '', '', '', '', ''] after then program will test your every position to check wheather
+you already won the Game or not. If you win then game will over  and oponent can't make any move otherwise he/she will have turn to make move.
+If there is no winning position until 9 moves then game will be considered as tie.
+
 Each game can be retrieved or played by using the path parameter
 `urlsafe_game_key`.
 
@@ -30,7 +35,7 @@ Each game can be retrieved or played by using the path parameter
  - **create_user**
     - Path: 'user'
     - Method: POST
-    - Parameters: user_name, email (optional), ranking
+    - Parameters: user_name, email (optional)
     - Returns: Message confirming creation of the User.
     - Description: Creates a new User. user_name provided must be unique. Will 
     raise a ConflictException if a User with that user_name already exists.
@@ -38,13 +43,10 @@ Each game can be retrieved or played by using the path parameter
  - **new_game**
     - Path: 'game'
     - Method: POST
-    - Parameters: user_one,user_two, attempts_allowed, attempts_remaining, gave_over, game_cancelled
-      user_one, user_two
+    - Parameters: user_x,user_o
     - Returns: GameForm with initial game state.
-    - Description: Creates a new Game. user_one,user_two provided must correspond to an
-    existing user - will raise a NotFoundException if not. Min must be less than
-    max. Also adds a task to a task queue to update the average moves remaining
-    for active games.
+    - Description: Creates a new Game. user_x,user_o provided must correspond to an
+    existing user - will raise a NotFoundException if not.
      
  - **get_game**
     - Path: 'game/{urlsafe_game_key}'
@@ -83,6 +85,7 @@ Each game can be retrieved or played by using the path parameter
     - Returns: UserGameFroms.
     - Description: Returns all games recorded by the provided player (unordered).
     Will raise a NotFoundException if the User does not exist.
+
  - **cancel_game**
     - Path: 'cancel_game/{urlsafe_game_key}'
     - Method: GET
