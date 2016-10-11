@@ -170,12 +170,12 @@ class TicTacToeApi(remote.Service):
         user = User.get_user_by_name(request.user_name)
         games = Game.query(ndb.OR(Game.user_x == user.key,
                                   Game.user_o == user.key)). \
-            filter(Game.game_over == False)
+            filter(Game.game_over == False).filter(Game.game_cancelled == False)
 
         if not user:
             raise endpoints.BadRequestException('User not found!')
 
-        return UserGameFroms(games = [game.to_form('Single User Games') for game in games])
+        return UserGameFroms(games = [game.to_form('Active User Games') for game in games])
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=StringMessage,
@@ -187,7 +187,7 @@ class TicTacToeApi(remote.Service):
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if not game:
             raise endpoints.NotFoundException('Game not found')
-        return StringMessage(message=str(game.history))
+        return StringMessage(message=str(game.history),game_over= game.game_over,game_cancelled= game.game_cancelled, tie = game.tie, winner=game.winner.get().name)
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',

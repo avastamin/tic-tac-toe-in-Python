@@ -1,18 +1,24 @@
 Design Decisions
-- I added a field to store the board in Game. I had some trouble to use
-python list so I used PickleProperty because it allowed
-me to store a Python List in the datastore which seemed like the simplest way
-to record the state of the board.
-- I also added next_move, user_x, user_o, and winner (all KeyProperty) to the Game
-model to keep track of which User was either 'X' or 'O' and who's move it was.
-- I also board_size though it was not necessary but it will give flexibility to extend
-complexity by increasing this board size
-- I used a 'game_over' flag as well to mark completed games.
+- I was getting trouble to design the board in datastore. I was also in trouble
+  about field type, storing every move, differentiate moves(position taken) based on user.
+  Firtly, I tried to create 2 different field for every user to store their moves
+  but it was not so perfect to make decesion about result of the game. First I choosen list
+  as board but again it was not perfect choice then user PickleProperty which is easy to list
+  and update over time.
+- There was another problem to track which user already placed his moves. I wanted to store this
+on session or cokkie but game can be postponed a long time and resume again so it was not also so perfect
+Then I choose another field called next_move which will store the value of the user whose turn next to move.
+
+- I defined one user as user_x and choosen letter as 'X' and 2nd user as user_o and his letter as 'O'
+which makes my life easier to take decision about the game result. Also I added winner field to store
+the key of the winning user.
+
+- I used 3X3 board size but it can be extended that's why I also used a field called board.
 -  Score model modified to record result of the game.
 It contains 4 fields (user_x, user_o, result and date). Result field can contains
 3 types result. I stored string instead of string make it more easy. these values can
 be: 'user_x', 'user_o' and 'tie'.
 
-- I game 2 points to winner and 2 points for tie and 0 points for lose
+- I gave 2 points to winner and 1 points for tie and 0 points for lose
 - I used win_percentage and no_lose_percentage to calculate user rank
 - I decided to give players 2 points for win, 1 point for tie and 0 points for lose.

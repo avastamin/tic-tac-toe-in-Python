@@ -219,3 +219,11 @@ class UserRankingForms(messages.Message):
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)
+
+class GameHistroy(messages.Message):
+    """GameHistroy-- outbound (single) string message"""
+    message = messages.StringField(1, required=True)
+    game_over = messages.BooleanField(2)
+    game_cancelled = messages.BooleanField(3)
+    tie = messages.BooleanField(4)
+    winner = messages.StringField(5)

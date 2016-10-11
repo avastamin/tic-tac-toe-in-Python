@@ -18,9 +18,12 @@ To choose your position you need to specify the index(position on the board). Fo
 then Board will looks like ['', '', 'O', '', '', '', '', '', ''] after then program will test your every position to check wheather
 you already won the Game or not. If you win then game will over  and oponent can't make any move otherwise he/she will have turn to make move.
 If there is no winning position until 9 moves then game will be considered as tie.
-
 Each game can be retrieved or played by using the path parameter
 `urlsafe_game_key`.
+
+Winner will get 2 points and losser will get 0. If game is tie the each player will get 1 points. There are two type of calculations I made.
+ One is  win_percentage which is calculated by number of wins divided by number of match played. Two: no_lose_percentage is calculated
+ (number of wins + number of ties)/total match played.
 
 ##Files Included:
  - api.py: Contains endpoints and game playing logic.
@@ -134,7 +137,8 @@ Each game can be retrieved or played by using the path parameter
     - Representation of a completed game's Score.
  - **UserGameForms**
     -Multiple UserGameForm container
-
+ - **GameHistroy**
+    - Show details about a game, used for get_game_history end point
 
 ## Cron Jobs
 
